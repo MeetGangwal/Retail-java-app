@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing - RetailPulse</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body>
+<div class="wrapper">
+    <div th:replace="layout :: sidebar('billing')"></div>
+    <div id="content">
+        <div th:replace="layout :: navbar"></div>
+        <div class="p-4 p-md-5">
+
+            <div class="mb-4">
+                <h4 class="fw-bold mb-1">Point of Sale (POS)</h4>
+                <p class="text-muted small mb-0">Add items to cart, select a customer and complete the sale.</p>
+            </div>
+
+            <!-- No Products Warning -->
+            <div th:if="${#lists.isEmpty(products)}" class="alert alert-warning rounded-3 mb-4">
+                <strong>⚠️ No products available!</strong>
+                Please <a th:href="@{/products}" class="alert-link">add products</a> before using the POS.
+            </div>
+
+            <div class="row g-4">
+                <!-- Add to Cart -->
+                <div class="col-md-5">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-body p-4">
+                            <h6 class="fw-bold mb-4">Add Item to Cart</h6>
+                            <form th:action="@{/billing/cart/add}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-semibold">Select Product</label>
+                                    <select name="productId" class="form-select rounded-3" required>
+                                        <option value="">-- Choose Product --</option>
+                                        <option th:each="p : ${products}"
+                                                th:value="${p.id}"
+                                                th:text="${p.name} + '  (₹' + ${p.price} + ')  — Stock: ' + ${p.stock}"
+                                                th:disabled="${p.stock == 0}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-semibold">Quantity</label>
+                                    <input type="number" name="quantity" class="form-control rounded-3" value="1" min="1" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 rounded-3 fw-semibold">Add to Cart</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Summary -->
+                <div class="col-md-7">
+                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h6 class="fw-bold mb-0">Current Cart</h6>
+                                <form th:action="@{/billing/cart/clear}" method="POST" th:if="${not #lists.isEmpty(cart)}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">🗑 Clear</button>
+                                </form>
+                            </div>
+
+                            <div class="table-responsive flex-grow-1">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead style="background:#f8f9fc;">
+                                        <tr>
+                                            <th class="py-2 fw-semibold text-muted" style="font-size:0.8rem;">ITEM</th>
+                                            <th class="py-2 fw-semibold text-muted text-center" style="font-size:0.8rem;">QTY</th>
+                                            <th class="py-2 fw-semibold text-muted text-end" style="font-size:0.8rem;">PRICE</th>
+                                            <th class="py-2 fw-semibold text-muted text-end" style="font-size:0.8rem;">TOTAL</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="item : ${cart}">
+                                            <td class="py-2 fw-semibold" th:text="${item.product.name}"></td>
+                                            <td class="py-2 text-center" th:text="${item.quantity}"></td>
+                                            <td class="py-2 text-end text-muted" th:text="'₹' + ${item.product.price}"></td>
+                                            <td class="py-2 text-end fw-bold text-primary" th:text="'₹' + ${item.product.price * item.quantity}"></td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(cart)}">
+                                            <td colspan="4" class="text-center py-4 text-muted">
+                                                <small>Cart is empty. Select products from the left.</small>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Checkout -->
+                            <div th:if="${not #lists.isEmpty(cart)}" class="mt-4 pt-3 border-top">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0 text-muted">Total Amount</h6>
+                                    <h4 class="fw-bold mb-0 text-primary" th:text="'₹' + ${cartTotal}"></h4>
+                                </div>
+                                <form th:action="@{/billing/checkout}" method="POST">
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted small fw-semibold">Assign to Customer</label>
+                                        <select name="customerId" class="form-select rounded-3" required>
+                                            <option value="">-- Select Customer --</option>
+                                            <option th:each="c : ${customers}" th:value="${c.id}"
+                                                    th:text="${c.name} + ' (' + ${c.phone} + ')'"></option>
+                                        </select>
+                                        <div th:if="${#lists.isEmpty(customers)}" class="form-text text-danger">
+                                            No customers! <a th:href="@{/customers}">Add a customer first.</a>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100 fw-bold rounded-3 py-2"
+                                            th:disabled="${#lists.isEmpty(customers)}">✅ Complete Sale</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:replace="layout :: darkModeScript"></script>
+</body>
+</html>

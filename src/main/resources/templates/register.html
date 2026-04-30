@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - RetailPulse</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body class="bg-register">
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height:100vh;">
+    <div class="glass-card" style="width: 100%; max-width: 450px;">
+        <div class="text-center mb-4">
+            <h3 class="fw-bold mb-1">Create Account</h3>
+            <p class="text-muted small mb-0">Retail Management System</p>
+        </div>
+        
+        <div th:if="${errorMsg}" class="alert alert-danger py-2 small mb-3" th:text="${errorMsg}"></div>
+        
+        <form th:action="@{/register}" method="POST">
+            <div class="mb-3">
+                <label class="form-label text-muted small mb-1">Full Name</label>
+                <input type="text" name="fullName" class="form-control bg-light border-0" placeholder="Meet Gangwal" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted small mb-1">Email Address</label>
+                <input type="email" name="email" class="form-control bg-light border-0" placeholder="meet@spit.ac.in" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted small mb-1">Mobile Number</label>
+                <input type="text" name="mobile" class="form-control bg-light border-0" placeholder="97456210" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted small mb-1">Password</label>
+                <input type="password" name="password" class="form-control bg-light border-0" placeholder="••••••" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-muted small mb-1">Confirm Password</label>
+                <input type="password" name="confirmPassword" class="form-control bg-light border-0" placeholder="••••••" required>
+            </div>
+            <button type="submit" class="btn w-100 text-white fw-bold mb-3" style="background: #5a74e5;">Register</button>
+            <div class="text-center small">
+                <span class="text-muted">Already have an account?</span> 
+                <a th:href="@{/login}" style="text-decoration: none; color: #5a74e5; font-weight:600;">Login</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
