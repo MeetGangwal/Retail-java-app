@@ -6,6 +6,36 @@
     <title>Billing - RetailPulse</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/style.css}" rel="stylesheet">
+    <style>
+        .product-search-results {
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid #e0e4eb;
+            border-radius: 10px;
+            background: #fff;
+        }
+        .product-search-results .search-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+        .product-search-results .search-item:last-child { border-bottom: none; }
+        .product-search-results .search-item:hover { background: #f4f6fb; }
+        .product-search-results .search-item.selected { background: #eff2fa; }
+        .product-search-results .search-item.out-of-stock { opacity: 0.4; pointer-events: none; }
+        .search-item-name { font-weight: 600; font-size: 0.9rem; }
+        .search-item-meta { font-size: 0.78rem; color: #8a94a6; }
+        .search-item-price { font-weight: 700; color: #556ee6; font-size: 0.9rem; }
+        .search-item-badge { font-size: 0.7rem; }
+        body.dark-mode .product-search-results { background: #21252b; border-color: #2c2f36; }
+        body.dark-mode .product-search-results .search-item { border-bottom-color: #2c2f36; }
+        body.dark-mode .product-search-results .search-item:hover { background: #2a2e36; }
+        body.dark-mode .product-search-results .search-item.selected { background: #2a2e36; }
+    </style>
 </head>
 <body>
 <div class="wrapper">
@@ -16,7 +46,7 @@
 
             <div class="mb-4">
                 <h4 class="fw-bold mb-1">Point of Sale (POS)</h4>
-                <p class="text-muted small mb-0">Add items to cart, select a customer and complete the sale.</p>
+                <p class="text-muted small mb-0">Search products, add to cart, and complete the sale.</p>
             </div>
 
             <!-- No Products Warning -->
@@ -26,28 +56,45 @@
             </div>
 
             <div class="row g-4">
-                <!-- Add to Cart -->
+                <!-- Search & Add to Cart -->
                 <div class="col-md-5">
                     <div class="card border-0 shadow-sm rounded-4">
                         <div class="card-body p-4">
-                            <h6 class="fw-bold mb-4">Add Item to Cart</h6>
-                            <form th:action="@{/billing/cart/add}" method="POST">
+                            <h6 class="fw-bold mb-3">Search &amp; Add Item</h6>
+
+                            <!-- Category Filter -->
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-semibold">Filter by Category</label>
+                                <select id="categoryFilter" class="form-select rounded-3" onchange="filterProducts()">
+                                    <option value="">All Categories</option>
+                                    <option value="kg">Kilogram (kg)</option>
+                                    <option value="gram">Gram (gram)</option>
+                                    <option value="liters">Liters (liters)</option>
+                                    <option value="milli liters">Milli Liters (ml)</option>
+                                </select>
+                            </div>
+
+                            <!-- Search Bar -->
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-semibold">Search Product</label>
+                                <input type="text" id="productSearch" class="form-control rounded-3" placeholder="Type to search products..." oninput="filterProducts()">
+                            </div>
+
+                            <!-- Search Results List -->
+                            <div id="searchResults" class="product-search-results mb-3" style="display:none;"></div>
+
+                            <!-- Hidden form -->
+                            <form th:action="@{/billing/cart/add}" method="POST" id="addToCartForm">
+                                <input type="hidden" name="productId" id="selectedProductId" value="">
                                 <div class="mb-3">
-                                    <label class="form-label text-muted small fw-semibold">Select Product</label>
-                                    <select name="productId" class="form-select rounded-3" required>
-                                        <option value="">-- Choose Product --</option>
-                                        <option th:each="p : ${products}"
-                                                th:value="${p.id}"
-                                                th:text="${p.name} + '  (₹' + ${p.price} + ')  — Stock: ' + ${p.stock}"
-                                                th:disabled="${p.stock == 0}">
-                                        </option>
-                                    </select>
+                                    <label class="form-label text-muted small fw-semibold">Selected Product</label>
+                                    <input type="text" id="selectedProductDisplay" class="form-control rounded-3" readonly placeholder="Click a product above to select" style="background:#f8f9fc;">
                                 </div>
                                 <div class="mb-4">
                                     <label class="form-label text-muted small fw-semibold">Quantity</label>
-                                    <input type="number" name="quantity" class="form-control rounded-3" value="1" min="1" required>
+                                    <input type="number" name="quantity" id="cartQuantity" class="form-control rounded-3" value="1" min="1" required>
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100 rounded-3 fw-semibold">Add to Cart</button>
+                                <button type="submit" class="btn btn-primary w-100 rounded-3 fw-semibold" id="addToCartBtn" disabled>Add to Cart</button>
                             </form>
                         </div>
                     </div>
@@ -69,6 +116,7 @@
                                     <thead style="background:#f8f9fc;">
                                         <tr>
                                             <th class="py-2 fw-semibold text-muted" style="font-size:0.8rem;">ITEM</th>
+                                            <th class="py-2 fw-semibold text-muted" style="font-size:0.8rem;">UNIT</th>
                                             <th class="py-2 fw-semibold text-muted text-center" style="font-size:0.8rem;">QTY</th>
                                             <th class="py-2 fw-semibold text-muted text-end" style="font-size:0.8rem;">PRICE</th>
                                             <th class="py-2 fw-semibold text-muted text-end" style="font-size:0.8rem;">TOTAL</th>
@@ -77,13 +125,17 @@
                                     <tbody>
                                         <tr th:each="item : ${cart}">
                                             <td class="py-2 fw-semibold" th:text="${item.product.name}"></td>
+                                            <td class="py-2">
+                                                <span class="badge rounded-pill bg-info bg-opacity-10 text-info px-2 py-1"
+                                                      th:text="${item.product.unitCategory != null ? item.product.unitCategory : '—'}"></span>
+                                            </td>
                                             <td class="py-2 text-center" th:text="${item.quantity}"></td>
                                             <td class="py-2 text-end text-muted" th:text="'₹' + ${item.product.price}"></td>
                                             <td class="py-2 text-end fw-bold text-primary" th:text="'₹' + ${item.product.price * item.quantity}"></td>
                                         </tr>
                                         <tr th:if="${#lists.isEmpty(cart)}">
-                                            <td colspan="4" class="text-center py-4 text-muted">
-                                                <small>Cart is empty. Select products from the left.</small>
+                                            <td colspan="5" class="text-center py-4 text-muted">
+                                                <small>Cart is empty. Search and select products from the left.</small>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -96,20 +148,37 @@
                                     <h6 class="mb-0 text-muted">Total Amount</h6>
                                     <h4 class="fw-bold mb-0 text-primary" th:text="'₹' + ${cartTotal}"></h4>
                                 </div>
-                                <form th:action="@{/billing/checkout}" method="POST">
+                                <form th:action="@{/billing/checkout}" method="POST" id="checkoutForm">
                                     <div class="mb-3">
-                                        <label class="form-label text-muted small fw-semibold">Assign to Customer</label>
-                                        <select name="customerId" class="form-select rounded-3" required>
-                                            <option value="">-- Select Customer --</option>
-                                            <option th:each="c : ${customers}" th:value="${c.id}"
-                                                    th:text="${c.name} + ' (' + ${c.phone} + ')'"></option>
-                                        </select>
-                                        <div th:if="${#lists.isEmpty(customers)}" class="form-text text-danger">
-                                            No customers! <a th:href="@{/customers}">Add a customer first.</a>
+                                        <label class="form-label text-muted small fw-semibold d-block">Assign to Customer</label>
+                                        <div class="btn-group w-100 mb-3" role="group">
+                                            <input type="radio" class="btn-check" name="customerType" id="typeOld" value="old" autocomplete="off" checked onchange="toggleCustomerType()">
+                                            <label class="btn btn-outline-primary rounded-start-3" for="typeOld">Existing Customer</label>
+
+                                            <input type="radio" class="btn-check" name="customerType" id="typeNew" value="new" autocomplete="off" onchange="toggleCustomerType()">
+                                            <label class="btn btn-outline-primary rounded-end-3" for="typeNew">New Customer</label>
+                                        </div>
+
+                                        <!-- Old Customer Search -->
+                                        <div id="oldCustomerSection">
+                                            <div class="position-relative">
+                                                <input type="text" id="customerSearch" class="form-control rounded-3 mb-2" placeholder="Search by name or phone..." oninput="filterCustomers()">
+                                                <div id="customerSearchResults" class="product-search-results position-absolute w-100 z-3" style="display:none; max-height:150px;"></div>
+                                            </div>
+                                            <input type="hidden" name="customerId" id="selectedCustomerId" value="">
+                                            <input type="text" id="selectedCustomerDisplay" class="form-control rounded-3 bg-light" readonly placeholder="Selected customer will appear here" required>
+                                            <div th:if="${#lists.isEmpty(customers)}" class="form-text text-danger mt-1">
+                                                No customers! Select 'New Customer' to add one.
+                                            </div>
+                                        </div>
+
+                                        <!-- New Customer Form -->
+                                        <div id="newCustomerSection" style="display:none;">
+                                            <input type="text" name="customerName" id="newCustomerName" class="form-control rounded-3 mb-2" placeholder="Full Name">
+                                            <input type="text" name="customerPhone" id="newCustomerPhone" class="form-control rounded-3" placeholder="Phone Number">
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn btn-success w-100 fw-bold rounded-3 py-2"
-                                            th:disabled="${#lists.isEmpty(customers)}">✅ Complete Sale</button>
+                                    <button type="submit" class="btn btn-success w-100 fw-bold rounded-3 py-2" id="completeSaleBtn">✅ Complete Sale</button>
                                 </form>
                             </div>
                         </div>
@@ -121,6 +190,172 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+// Build the product list from the server data
+var allProducts = [];
+/*[# th:each="p : ${products}"]*/
+allProducts.push({
+    id:    /*[[${p.id}]]*/    0,
+    name:  /*[[${p.name}]]*/  '',
+    price: /*[[${p.price}]]*/  0,
+    stock: /*[[${p.stock}]]*/  0,
+    cat:   /*[[${p.unitCategory}]]*/  ''
+});
+/*[/]*/
+
+function filterProducts() {
+    var query = document.getElementById('productSearch').value.toLowerCase().trim();
+    var catFilter = document.getElementById('categoryFilter').value.toLowerCase().trim();
+    var container = document.getElementById('searchResults');
+
+    // Show results only when there is a query or a category selected
+    if (!query && !catFilter) {
+        container.style.display = 'none';
+        return;
+    }
+
+    var filtered = allProducts.filter(function(p) {
+        var matchName = !query || p.name.toLowerCase().indexOf(query) !== -1;
+        var matchCat = !catFilter || (p.cat && p.cat.toLowerCase() === catFilter);
+        return matchName && matchCat;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-3 text-muted small">No products found.</div>';
+        container.style.display = 'block';
+        return;
+    }
+
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+        var p = filtered[i];
+        var oos = p.stock <= 0;
+        html += '<div class="search-item' + (oos ? ' out-of-stock' : '') + '" onclick="selectProduct(' + p.id + ',\'' + escapeHtml(p.name) + '\',' + p.price + ',' + p.stock + ')">';
+        html += '  <div>';
+        html += '    <span class="search-item-name">' + escapeHtml(p.name) + '</span>';
+        html += '    <br><span class="search-item-meta">' + (p.cat || '—') + ' &middot; Stock: ' + p.stock + '</span>';
+        html += '  </div>';
+        html += '  <div class="text-end">';
+        html += '    <span class="search-item-price">₹' + p.price + '</span>';
+        if (oos) html += '<br><span class="badge bg-danger search-item-badge">Out of Stock</span>';
+        html += '  </div>';
+        html += '</div>';
+    }
+    container.innerHTML = html;
+    container.style.display = 'block';
+}
+
+function selectProduct(id, name, price, stock) {
+    document.getElementById('selectedProductId').value = id;
+    document.getElementById('selectedProductDisplay').value = name + '  —  ₹' + price + '  (Stock: ' + stock + ')';
+    document.getElementById('addToCartBtn').disabled = false;
+    document.getElementById('cartQuantity').max = stock;
+    // Highlight
+    var items = document.querySelectorAll('.search-item');
+    items.forEach(function(el) { el.classList.remove('selected'); });
+    event.currentTarget.classList.add('selected');
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Show all products initially when user focuses on the search box
+document.getElementById('productSearch').addEventListener('focus', function() {
+    if (!this.value && !document.getElementById('categoryFilter').value) {
+        // show all
+        document.getElementById('categoryFilter').dispatchEvent(new Event('change'));
+    }
+});
+
+// Validate before submit
+document.getElementById('addToCartForm').addEventListener('submit', function(e) {
+    if (!document.getElementById('selectedProductId').value) {
+        alert('Please select a product first!');
+        e.preventDefault();
+    }
+});
+
+// Customers data
+var allCustomers = [];
+/*[# th:each="c : ${customers}"]*/
+allCustomers.push({
+    id:    /*[[${c.id}]]*/    0,
+    name:  /*[[${c.name}]]*/  '',
+    phone: /*[[${c.phone}]]*/ ''
+});
+/*[/]*/
+
+function toggleCustomerType() {
+    var isNew = document.getElementById('typeNew').checked;
+    if (isNew) {
+        document.getElementById('oldCustomerSection').style.display = 'none';
+        document.getElementById('newCustomerSection').style.display = 'block';
+        document.getElementById('selectedCustomerDisplay').removeAttribute('required');
+        document.getElementById('newCustomerName').setAttribute('required', 'required');
+        document.getElementById('newCustomerPhone').setAttribute('required', 'required');
+    } else {
+        document.getElementById('oldCustomerSection').style.display = 'block';
+        document.getElementById('newCustomerSection').style.display = 'none';
+        document.getElementById('selectedCustomerDisplay').setAttribute('required', 'required');
+        document.getElementById('newCustomerName').removeAttribute('required');
+        document.getElementById('newCustomerPhone').removeAttribute('required');
+    }
+}
+
+function filterCustomers() {
+    var query = document.getElementById('customerSearch').value.toLowerCase().trim();
+    var container = document.getElementById('customerSearchResults');
+    if (!query) {
+        container.style.display = 'none';
+        return;
+    }
+    var filtered = allCustomers.filter(function(c) {
+        return c.name.toLowerCase().indexOf(query) !== -1 || c.phone.indexOf(query) !== -1;
+    });
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-2 text-muted small">No customers found.</div>';
+        container.style.display = 'block';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+        var c = filtered[i];
+        html += '<div class="search-item" onclick="selectCustomer(' + c.id + ',\'' + escapeHtml(c.name) + '\',\'' + escapeHtml(c.phone) + '\')">';
+        html += '  <span class="search-item-name">' + escapeHtml(c.name) + '</span>';
+        html += '  <br><span class="search-item-meta">' + escapeHtml(c.phone) + '</span>';
+        html += '</div>';
+    }
+    container.innerHTML = html;
+    container.style.display = 'block';
+}
+
+function selectCustomer(id, name, phone) {
+    document.getElementById('selectedCustomerId').value = id;
+    document.getElementById('selectedCustomerDisplay').value = name + ' (' + phone + ')';
+    document.getElementById('customerSearch').value = '';
+    document.getElementById('customerSearchResults').style.display = 'none';
+}
+
+// Show all customers when focus on search
+document.getElementById('customerSearch').addEventListener('focus', function() {
+    if (!this.value) {
+        this.value = ' '; // trigger input
+        filterCustomers();
+        this.value = ''; // clear space
+    }
+});
+
+document.addEventListener('click', function(e) {
+    if(!e.target.closest('#oldCustomerSection')) {
+        var res = document.getElementById('customerSearchResults');
+        if (res) res.style.display = 'none';
+    }
+});
+</script>
 <script th:replace="layout :: darkModeScript"></script>
 </body>
 </html>

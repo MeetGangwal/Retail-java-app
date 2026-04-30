@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.dao.DataIntegrityViolationException;
 import javax.servlet.http.HttpSession;
 
 @Controller
@@ -53,9 +55,16 @@ public class CustomerController {
     }
 
     @PostMapping("/delete/{id}")
-    public String deleteCustomer(@PathVariable Long id, HttpSession session) {
+    public String deleteCustomer(@PathVariable Long id, HttpSession session, RedirectAttributes redirectAttributes) {
         if (session.getAttribute("user") == null) return "redirect:/login";
-        customerRepo.deleteById(id);
+        try {
+            customerRepo.deleteById(id);
+            redirectAttributes.addFlashAttribute("successMsg", "Customer deleted successfully.");
+        } catch (DataIntegrityViolationException e) {
+            redirectAttributes.addFlashAttribute("errorMsg", "Cannot delete customer. They have existing orders in the system.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMsg", "An error occurred while deleting the customer.");
+        }
         return "redirect:/customers";
     }
 }

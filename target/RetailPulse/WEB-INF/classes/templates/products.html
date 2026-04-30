@@ -24,6 +24,15 @@
                 </button>
             </div>
 
+            <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <span th:text="${successMsg}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <span th:text="${errorMsg}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
             <!-- Stats -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
@@ -47,6 +56,7 @@
                         <thead style="background:#f8f9fc;">
                             <tr>
                                 <th class="px-4 py-3 fw-semibold text-muted" style="font-size:0.8rem;">#ID</th>
+                                <th class="py-3 fw-semibold text-muted" style="font-size:0.8rem;">CATEGORY</th>
                                 <th class="py-3 fw-semibold text-muted" style="font-size:0.8rem;">PRODUCT NAME</th>
                                 <th class="py-3 fw-semibold text-muted" style="font-size:0.8rem;">PRICE</th>
                                 <th class="py-3 fw-semibold text-muted" style="font-size:0.8rem;">STOCK</th>
@@ -57,6 +67,10 @@
                         <tbody>
                             <tr th:each="p : ${products}">
                                 <td class="px-4 py-3 text-muted" th:text="'#' + ${p.id}"></td>
+                                <td class="py-3">
+                                    <span class="badge rounded-pill bg-info bg-opacity-10 text-info px-3 py-2"
+                                          th:text="${p.unitCategory != null ? p.unitCategory : '—'}"></span>
+                                </td>
                                 <td class="py-3 fw-semibold" th:text="${p.name}"></td>
                                 <td class="py-3 fw-bold text-primary" th:text="'₹' + ${p.price}"></td>
                                 <td class="py-3" th:text="${p.stock} + ' units'"></td>
@@ -69,7 +83,7 @@
                                 <td class="px-4 py-3 text-end">
                                     <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 me-1"
                                             onclick="openEditProductModal(this)"
-                                            th:data-id="${p.id}" th:data-name="${p.name}" th:data-price="${p.price}" th:data-stock="${p.stock}">
+                                            th:data-id="${p.id}" th:data-cat="${p.unitCategory}" th:data-name="${p.name}" th:data-price="${p.price}" th:data-stock="${p.stock}">
                                         Edit
                                     </button>
                                     <form th:action="@{/products/delete/{id}(id=${p.id})}" method="POST" style="display:inline;">
@@ -79,7 +93,7 @@
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(products)}">
-                                <td colspan="6" class="text-center py-5 text-muted">
+                                <td colspan="7" class="text-center py-5 text-muted">
                                     <p class="mb-1">No products yet.</p>
                                     <small>Click "Add Product" to get started!</small>
                                 </td>
@@ -102,6 +116,16 @@
       </div>
       <form th:action="@{/products/add}" method="POST" onsubmit="return validateProductForm(this)">
           <div class="modal-body pt-3">
+              <div class="mb-3">
+                  <label class="form-label text-muted small fw-semibold">Unit Category <span class="text-danger">*</span></label>
+                  <select name="unitCategory" class="form-select rounded-3" required>
+                      <option value="">-- Select Unit --</option>
+                      <option value="kg">Kilogram (kg)</option>
+                      <option value="gram">Gram (gram)</option>
+                      <option value="liters">Liters (liters)</option>
+                      <option value="milli liters">Milli Liters (ml)</option>
+                  </select>
+              </div>
               <div class="mb-3">
                   <label class="form-label text-muted small fw-semibold">Product Name <span class="text-danger">*</span></label>
                   <input type="text" name="name" class="form-control rounded-3" placeholder="e.g. Wireless Mouse" required>
@@ -137,6 +161,16 @@
       <form id="editProductForm" method="POST" onsubmit="return validateProductForm(this)">
           <div class="modal-body pt-3">
               <div class="mb-3">
+                  <label class="form-label text-muted small fw-semibold">Unit Category <span class="text-danger">*</span></label>
+                  <select id="editProdCat" name="unitCategory" class="form-select rounded-3" required>
+                      <option value="">-- Select Unit --</option>
+                      <option value="kg">Kilogram (kg)</option>
+                      <option value="gram">Gram (gram)</option>
+                      <option value="liters">Liters (liters)</option>
+                      <option value="milli liters">Milli Liters (ml)</option>
+                  </select>
+              </div>
+              <div class="mb-3">
                   <label class="form-label text-muted small fw-semibold">Product Name <span class="text-danger">*</span></label>
                   <input type="text" id="editProdName" name="name" class="form-control rounded-3" required>
               </div>
@@ -166,6 +200,7 @@ var contextPath = /*[[@{/}]]*/ '/';
 
 function openEditProductModal(btn) {
     var id = btn.getAttribute('data-id');
+    document.getElementById('editProdCat').value = btn.getAttribute('data-cat') || '';
     document.getElementById('editProdName').value = btn.getAttribute('data-name');
     document.getElementById('editProdPrice').value = btn.getAttribute('data-price');
     document.getElementById('editProdStock').value = btn.getAttribute('data-stock');
@@ -174,9 +209,11 @@ function openEditProductModal(btn) {
 }
 
 function validateProductForm(form) {
+    var cat = form.querySelector('[name="unitCategory"]').value;
     var name = form.querySelector('[name="name"]').value.trim();
     var price = form.querySelector('[name="price"]').value;
     var stock = form.querySelector('[name="stock"]').value;
+    if (!cat) { alert('Please select a unit category!'); return false; }
     if (!name) { alert('Product name is required!'); return false; }
     if (!price || parseFloat(price) < 0) { alert('Please enter a valid price!'); return false; }
     if (!stock || parseInt(stock) < 0) { alert('Please enter a valid stock quantity!'); return false; }
