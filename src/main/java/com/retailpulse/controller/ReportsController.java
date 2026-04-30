@@ -38,6 +38,9 @@ public class ReportsController {
         model.addAttribute("totalOrders", orders.size());
         model.addAttribute("totalProducts", productRepo.count());
         model.addAttribute("totalCustomers", customerRepo.count());
+        
+        model.addAttribute("customersList", customerRepo.findAll());
+        model.addAttribute("productsList", productRepo.findAll());
 
         return "reports";
     }

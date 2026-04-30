@@ -31,10 +31,6 @@
         .search-item-meta { font-size: 0.78rem; color: #8a94a6; }
         .search-item-price { font-weight: 700; color: #556ee6; font-size: 0.9rem; }
         .search-item-badge { font-size: 0.7rem; }
-        body.dark-mode .product-search-results { background: #21252b; border-color: #2c2f36; }
-        body.dark-mode .product-search-results .search-item { border-bottom-color: #2c2f36; }
-        body.dark-mode .product-search-results .search-item:hover { background: #2a2e36; }
-        body.dark-mode .product-search-results .search-item.selected { background: #2a2e36; }
     </style>
 </head>
 <body>
@@ -95,6 +91,7 @@
                                     <input type="number" name="quantity" id="cartQuantity" class="form-control rounded-3" value="1" min="1" required>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100 rounded-3 fw-semibold" id="addToCartBtn" disabled>Add to Cart</button>
+                                <div id="cartError" class="text-danger small mt-2 text-center" style="display:none;">Please select a product first!</div>
                             </form>
                         </div>
                     </div>
@@ -272,8 +269,10 @@ document.getElementById('productSearch').addEventListener('focus', function() {
 // Validate before submit
 document.getElementById('addToCartForm').addEventListener('submit', function(e) {
     if (!document.getElementById('selectedProductId').value) {
-        alert('Please select a product first!');
+        document.getElementById('cartError').style.display = 'block';
         e.preventDefault();
+    } else {
+        document.getElementById('cartError').style.display = 'none';
     }
 });
 

@@ -52,7 +52,26 @@
             <!-- Table -->
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0 align-middle">
+                    <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <h6 class="fw-bold mb-0">Product List</h6>
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="text" id="productSearch" class="form-control form-control-sm rounded-pill px-3" placeholder="Search by name..." onkeyup="filterProductsTable()" style="width: 200px;">
+                            <select id="filterCategory" class="form-select form-select-sm rounded-pill px-3" onchange="filterProductsTable()">
+                                <option value="">All Categories</option>
+                                <option value="kg">Kilogram (kg)</option>
+                                <option value="gram">Gram (gram)</option>
+                                <option value="liters">Liters (liters)</option>
+                                <option value="milli liters">Milli Liters (ml)</option>
+                            </select>
+                            <select id="filterStatus" class="form-select form-select-sm rounded-pill px-3" onchange="filterProductsTable()">
+                                <option value="">All Statuses</option>
+                                <option value="In Stock">In Stock</option>
+                                <option value="Low Stock">Low Stock</option>
+                                <option value="Out of Stock">Out of Stock</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="table table-hover mb-0 align-middle" id="productsTable">
                         <thead style="background:#f8f9fc;">
                             <tr>
                                 <th class="px-4 py-3 fw-semibold text-muted" style="font-size:0.8rem;">#ID</th>
@@ -64,26 +83,28 @@
                                 <th class="px-4 py-3 fw-semibold text-muted text-end" style="font-size:0.8rem;">ACTION</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr th:each="p : ${products}">
+                        <tbody id="productsTableBody">
+                            <tr th:each="p : ${products}" class="product-row"
+                                th:data-category="${p.unitCategory != null ? p.unitCategory : ''}"
+                                th:data-status="${p.stock == 0 ? 'Out of Stock' : (p.stock < 10 ? 'Low Stock' : 'In Stock')}">
                                 <td class="px-4 py-3 text-muted" th:text="'#' + ${p.id}"></td>
                                 <td class="py-3">
                                     <span class="badge rounded-pill bg-info bg-opacity-10 text-info px-3 py-2"
                                           th:text="${p.unitCategory != null ? p.unitCategory : '—'}"></span>
                                 </td>
-                                <td class="py-3 fw-semibold" th:text="${p.name}"></td>
-                                <td class="py-3 fw-bold text-primary" th:text="'₹' + ${p.price}"></td>
-                                <td class="py-3" th:text="${p.stock} + ' units'"></td>
+                                <td class="py-3 fw-semibold product-name" th:text="${p.name ?: 'Unnamed'}"></td>
+                                <td class="py-3 fw-bold text-primary" th:text="'₹' + ${p.price ?: 0}"></td>
+                                <td class="py-3" th:text="${p.stock ?: 0} + ' units'"></td>
                                 <td class="py-3">
                                     <span class="badge rounded-pill px-3 py-2"
-                                          th:classappend="${p.stock == 0} ? 'bg-danger' : (${p.stock < 10} ? 'text-warning bg-warning bg-opacity-10' : 'text-success bg-success bg-opacity-10')"
-                                          th:text="${p.stock == 0} ? 'Out of Stock' : (${p.stock < 10} ? 'Low Stock' : 'In Stock')">
+                                          th:classappend="${p.stock == null || p.stock == 0} ? 'bg-danger' : (${p.stock < 10} ? 'text-warning bg-warning bg-opacity-10' : 'text-success bg-success bg-opacity-10')"
+                                          th:text="${p.stock == null || p.stock == 0} ? 'Out of Stock' : (${p.stock < 10} ? 'Low Stock' : 'In Stock')">
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-end">
                                     <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 me-1"
                                             onclick="openEditProductModal(this)"
-                                            th:data-id="${p.id}" th:data-cat="${p.unitCategory}" th:data-name="${p.name}" th:data-price="${p.price}" th:data-stock="${p.stock}">
+                                            th:data-id="${p.id}" th:data-cat="${p.unitCategory ?: ''}" th:data-name="${p.name ?: ''}" th:data-price="${p.price ?: 0}" th:data-stock="${p.stock ?: 0}">
                                         Edit
                                     </button>
                                     <form th:action="@{/products/delete/{id}(id=${p.id})}" method="POST" style="display:inline;">
@@ -91,6 +112,9 @@
                                                 onclick="return confirm('Delete this product?')">Delete</button>
                                     </form>
                                 </td>
+                            </tr>
+                            <tr id="noProductsRow" style="display:none;">
+                                <td colspan="7" class="text-center py-4 text-muted small">No products match your filters.</td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(products)}">
                                 <td colspan="7" class="text-center py-5 text-muted">
@@ -209,15 +233,39 @@ function openEditProductModal(btn) {
 }
 
 function validateProductForm(form) {
-    var cat = form.querySelector('[name="unitCategory"]').value;
-    var name = form.querySelector('[name="name"]').value.trim();
-    var price = form.querySelector('[name="price"]').value;
-    var stock = form.querySelector('[name="stock"]').value;
-    if (!cat) { alert('Please select a unit category!'); return false; }
-    if (!name) { alert('Product name is required!'); return false; }
-    if (!price || parseFloat(price) < 0) { alert('Please enter a valid price!'); return false; }
-    if (!stock || parseInt(stock) < 0) { alert('Please enter a valid stock quantity!'); return false; }
+    // The required and min HTML5 attributes on the inputs will handle basic validation natively.
     return true;
+}
+
+function filterProductsTable() {
+    var query = document.getElementById('productSearch').value.toLowerCase().trim();
+    var catFilter = document.getElementById('filterCategory').value;
+    var statusFilter = document.getElementById('filterStatus').value;
+    
+    var rows = document.querySelectorAll('.product-row');
+    var visibleCount = 0;
+    
+    rows.forEach(function(row) {
+        var name = row.querySelector('.product-name').textContent.toLowerCase();
+        var category = row.getAttribute('data-category');
+        var status = row.getAttribute('data-status');
+        
+        var matchName = !query || name.includes(query);
+        var matchCat = !catFilter || category === catFilter;
+        var matchStatus = !statusFilter || status === statusFilter;
+        
+        if (matchName && matchCat && matchStatus) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    var noResults = document.getElementById('noProductsRow');
+    if (noResults) {
+        noResults.style.display = visibleCount === 0 && rows.length > 0 ? '' : 'none';
+    }
 }
 </script>
 <script th:replace="layout :: darkModeScript"></script>

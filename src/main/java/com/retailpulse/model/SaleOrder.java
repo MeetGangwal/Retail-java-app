@@ -1,6 +1,7 @@
 package com.retailpulse.model;
 import javax.persistence.*;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 public class SaleOrder {
@@ -16,6 +17,9 @@ public class SaleOrder {
     @Temporal(TemporalType.TIMESTAMP)
     private Date orderDate;
 
+    @OneToMany(mappedBy = "saleOrder", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<OrderItem> orderItems;
+
     public SaleOrder() {}
     public SaleOrder(Customer customer, Double totalAmount, Date orderDate) {
         this.customer = customer;
@@ -30,4 +34,6 @@ public class SaleOrder {
     public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
     public Date getOrderDate() { return orderDate; }
     public void setOrderDate(Date orderDate) { this.orderDate = orderDate; }
+    public List<OrderItem> getOrderItems() { return orderItems; }
+    public void setOrderItems(List<OrderItem> orderItems) { this.orderItems = orderItems; }
 }
