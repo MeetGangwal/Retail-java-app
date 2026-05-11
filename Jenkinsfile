@@ -25,6 +25,12 @@ pipeline {
             }
         }
 
+        stage('Security Scan') {
+            steps {
+                sh 'mvn dependency-check:check'
+            }
+        }
+
         stage('Package') {
             steps {
                 sh 'mvn package'
