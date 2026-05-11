@@ -11,7 +11,7 @@ public class AsyncReportService {
     public CompletableFuture<String> generateSalesDataAsync() {
         try {
             // Simulate heavy database aggregation processing
-            Thread.sleep(3000); 
+            Thread.sleep(4000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
