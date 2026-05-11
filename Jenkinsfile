@@ -27,7 +27,7 @@ pipeline {
 
         stage('Security Scan') {
             steps {
-                sh 'mvn dependency-check:check'
+                sh 'mvn spotbugs:spotbugs'
             }
         }
 

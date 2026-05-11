@@ -70,11 +70,11 @@
                 <version>3.21.2</version>
             </plugin>
 
-            <!-- OWASP Dependency Check Plugin -->
+            <!-- spotbugs Dependency Check Plugin -->
             <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>9.0.9</version>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.8.3.1</version>
             </plugin>
         </plugins>
     </build>
